@@ -5,6 +5,9 @@ import os
 import httpx
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 load_dotenv()
 
@@ -12,17 +15,23 @@ logging.basicConfig(level=logging.INFO)
 
 
 # HA add-ons get config via /data/options.json, not environment variables
-def get_token() -> str:
+load_dotenv()
+
+
+def get_config() -> dict:
     options_path = "/data/options.json"
     if os.path.exists(options_path):
         with open(options_path) as f:
-            return json.load(f).get("ynab_token", "")
-    # Fallback to env var for local development
-    return os.environ.get("YNAB_TOKEN", "")
+            return json.load(f)
+    return {
+        "ynab_token": os.environ.get("YNAB_TOKEN", ""),
+        "api_key": os.environ.get("API_KEY", ""),
+    }
 
 
-YNAB_TOKEN = get_token()
-logging.info(f"YNAB_TOKEN present: {bool(YNAB_TOKEN)}, length: {len(YNAB_TOKEN)}")
+config = get_config()
+YNAB_TOKEN = config.get("ynab_token", "")
+API_KEY = config.get("api_key", "")
 
 BASE_URL = "https://api.ynab.com/v1"
 
@@ -30,6 +39,16 @@ MILLIUNIT = 1000
 
 
 mcp = FastMCP("YNAB", host="0.0.0.0", port=8000)
+
+
+class APIKeyMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Skip auth check if no API key is configured
+        if API_KEY:
+            key = request.query_params.get("key", "")
+            if key != API_KEY:
+                return JSONResponse({"error": "Unauthorized"}, status_code=401)
+        return await call_next(request)
 
 
 def _headers() -> dict:
