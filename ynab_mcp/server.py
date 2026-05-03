@@ -1,3 +1,4 @@
+import json
 import os
 
 import httpx
@@ -6,7 +7,19 @@ from mcp.server.fastmcp import FastMCP
 
 load_dotenv()
 
-YNAB_TOKEN = os.getenv("YNAB_TOKEN")
+
+# HA add-ons get config via /data/options.json, not environment variables
+def get_token() -> str:
+    options_path = "/data/options.json"
+    if os.path.exists(options_path):
+        with open(options_path) as f:
+            return json.load(f).get("ynab_token", "")
+    # Fallback to env var for local development
+    return os.environ.get("YNAB_TOKEN", "")
+
+
+YNAB_TOKEN = get_token()
+
 BASE_URL = "https://api.ynab.com/v1"
 
 MILLIUNIT = 1000
