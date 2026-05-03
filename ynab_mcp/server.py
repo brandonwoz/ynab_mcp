@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 import httpx
@@ -6,6 +7,8 @@ from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
 load_dotenv()
+
+logging.basicConfig(level=logging.INFO)
 
 
 # HA add-ons get config via /data/options.json, not environment variables
@@ -19,6 +22,7 @@ def get_token() -> str:
 
 
 YNAB_TOKEN = get_token()
+logging.info(f"YNAB_TOKEN present: {bool(YNAB_TOKEN)}, length: {len(YNAB_TOKEN)}")
 
 BASE_URL = "https://api.ynab.com/v1"
 
