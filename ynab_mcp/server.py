@@ -95,5 +95,57 @@ async def list_accounts(plan_id: str) -> list:
     ]
 
 
+@mcp.tool()
+async def get_transactions(plan_id: str) -> list:
+    """Get a list of transactions from YNAB. This does not include scheduled
+    transactions.
+    """
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BASE_URL}/plans/{plan_id}/transactions", headers=_headers()
+        )
+        response.raise_for_status()
+        transactions = response.json()["data"]["transactions"]
+        # Convert milliunits to units
+    return [
+        {
+            "id": t["id"],
+            "account_id": t["account_id"],
+            "date": t["date"],
+            "amount": t["amount"] / MILLIUNIT,
+            "payee_name": t["payee_name"],
+            "memo": t["memo"],
+            "cleared": t["cleared"],
+            "approved": t["approved"],
+        }
+        for t in transactions
+    ]
+
+
+@mcp.tool()
+async def get_scheduled_transactions(plan_id: str) -> list:
+    """Get a list of scheduled transactions from YNAB."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BASE_URL}/plans/{plan_id}/scheduled_transactions", headers=_headers()
+        )
+        response.raise_for_status()
+        transactions = response.json()["data"]["scheduled_transactions"]
+        # Convert milliunits to units
+    return [
+        {
+            "id": t["id"],
+            "account_id": t["account_id"],
+            "date": t["date"],
+            "amount": t["amount"] / MILLIUNIT,
+            "payee_name": t["payee_name"],
+            "memo": t["memo"],
+            "frequency": t["frequency"],
+            "next_date": t["next_date"],
+        }
+        for t in transactions
+    ]
+
+
 if __name__ == "__main__":
     mcp.run(transport="streamable-http")
