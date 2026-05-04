@@ -1,5 +1,5 @@
 name: "YNAB MCP Server"
-version: "1.0.1"
+version: "1.0.2"
 slug: ynab_mcp
 description: "MCP server exposing YNAB tools to Claude"
 arch:
