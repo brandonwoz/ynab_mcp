@@ -147,5 +147,32 @@ async def get_scheduled_transactions(plan_id: str) -> list:
     ]
 
 
+@mcp.tool()
+async def get_categories(plan_id: str) -> list:
+    """Get a list of categories from YNAB."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BASE_URL}/plans/{plan_id}/categories", headers=_headers()
+        )
+        response.raise_for_status()
+        category_groups = response.json()["data"]["category_groups"]
+        categories = []
+        for group in category_groups:
+            for category in group["categories"]:
+                categories.append(category)
+    return [
+        {
+            "id": c["id"],
+            "group_id": c["group_id"],
+            "group_name": c["group_name"],
+            "name": c["name"],
+            "budgeted": c["budgeted"] / MILLIUNIT,
+            "activity": c["activity"] / MILLIUNIT,
+            "balance": c["balance"] / MILLIUNIT,
+        }
+        for c in categories
+    ]
+
+
 if __name__ == "__main__":
     mcp.run(transport="streamable-http")
